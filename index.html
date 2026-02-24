@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>輕聲翻卡記憶練習</title>
+    <style>
+        :root {
+            --primary-color: #ff85a2;
+            --bg-color: #fff5f7;
+            --card-front: #ffffff;
+            --card-back: #fff9db;
+            --whatsapp-green: #25d366;
+            --font-stack: "Yuanti SC", "YouYuan", "STYuanti-SC-Regular", "Microsoft JhengHei", sans-serif;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            font-family: var(--font-stack);
+            background-color: var(--bg-color);
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .header-title {
+            position: absolute; top: 15px; right: 20px;
+            font-size: 14px; color: #d66d85; z-index: 100; font-weight: bold;
+        }
+
+        /* 登錄介面 */
+        #login-screen {
+            position: fixed; inset: 0; background: white;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000; padding: 20px;
+        }
+
+        .login-box {
+            background: #fff; padding: 40px; border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(255, 133, 162, 0.2);
+            max-width: 320px; width: 100%; text-align: center;
+            border: 4px solid var(--bg-color);
+        }
+
+        input {
+            width: 100%; padding: 15px; margin: 12px 0;
+            border: 2px solid #ffe0e6; border-radius: 15px;
+            box-sizing: border-box; font-size: 16px; outline: none;
+        }
+
+        button {
+            background: var(--primary-color); color: white; border: none;
+            padding: 15px 30px; border-radius: 50px; cursor: pointer;
+            font-size: 18px; font-weight: bold;
+            box-shadow: 0 6px 0 #d66d85; transition: 0.1s;
+            margin-top: 10px; width: 100%;
+        }
+        button:active { transform: translateY(3px); box-shadow: 0 2px 0 #d66d85; }
+
+        /* 主遊戲畫面 */
+        #game-screen { display: none; height: 100%; flex-direction: column; align-items: center; justify-content: space-around; padding: 20px 0; box-sizing: border-box; }
+
+        .progress { font-size: 20px; color: #d66d85; font-weight: bold; background: #fff; padding: 5px 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        /* 卡片設計 */
+        .card-container { width: 300px; height: 380px; perspective: 1000px; cursor: pointer; }
+        .card-inner {
+            position: relative; width: 100%; height: 100%;
+            text-align: center; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+        .card-inner.is-flipped { transform: rotateY(180deg); }
+        .card-face {
+            position: absolute; width: 100%; height: 100%;
+            backface-visibility: hidden; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            border-radius: 35px; border: 12px solid white;
+            box-shadow: 0 15px 35px rgba(214, 109, 133, 0.15); box-sizing: border-box;
+        }
+        .card-front { background: var(--card-front); }
+        .card-back { background: var(--card-back); transform: rotateY(180deg); }
+
+        .pinyin { font-size: 38px; font-family: "Calibri", sans-serif; color: #ff6b6b; letter-spacing: 1px; }
+        .word { font-size: 78px; font-weight: bold; color: #444; }
+
+        .controls { display: flex; gap: 10px; width: 90%; max-width: 400px; }
+        .btn-nav { background: #ffb3c6; box-shadow: 0 6px 0 #e89fb2; flex: 1; padding: 12px 10px; font-size: 16px; }
+        .btn-audio { background: #ffd43b; box-shadow: 0 6px 0 #f59f00; color: #856404; flex: 1.2; padding: 12px 10px; font-size: 16px; }
+
+        /* 彙總頁 */
+        #summary-screen { display: none; padding: 40px 20px; overflow-y: auto; height: 100%; box-sizing: border-box; }
+        
+        .full-audio-player {
+            background: white; padding: 20px; border-radius: 25px; margin-bottom: 25px;
+            box-shadow: 0 10px 20px rgba(255, 133, 162, 0.1); text-align: center; border: 2px dashed #ffb3c6;
+        }
+        
+        .whatsapp-btn {
+            background: var(--whatsapp-green) !important;
+            box-shadow: 0 6px 0 #128c7e !important;
+            margin-bottom: 20px;
+        }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+        .summary-item {
+            background: white; padding: 20px; border-radius: 25px;
+            text-align: center; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border: 2px solid transparent; transition: 0.2s;
+        }
+        .summary-item:active { background: var(--card-back); border-color: var(--primary-color); }
+
+        .copyright { font-size: 12px; color: #aaa; line-height: 1.6; margin-top: 30px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="header-title">輕聲翻卡記憶練習</div>
+<audio id="audio-sprite" src="輕聲詞語3.mp3" preload="auto"></audio>
+
+<div id="login-screen">
+    <div class="login-box">
+        <h2 style="color: var(--primary-color); margin-bottom: 5px; font-size: 28px;">🌸 輕聲練習</h2>
+        <p style="font-size: 14px; color: #b5838d; margin-bottom: 20px;">請輸入內部資訊開始</p>
+        <input type="text" id="username" placeholder="請輸入您的姓名">
+        <input type="password" id="password" placeholder="輸入密碼">
+        <button onclick="handleLogin()">開始學習 🚀</button>
+        <div class="copyright">
+            網頁僅供VTC內部使用。<br>
+            職業訓練局普通話培訓測試中心 版權所有。
+        </div>
+    </div>
+</div>
+
+<div id="game-screen">
+    <div class="progress" id="progress-text">詞語 1 / 20</div>
+    <div class="card-container" onclick="flipCard()">
+        <div class="card-inner" id="main-card">
+            <div class="card-face card-front">
+                <div class="pinyin" id="display-pinyin">ài ren</div>
+                <div style="margin-top: 40px; color: #ffd1dc; font-size: 16px;">點擊翻轉 👆</div>
+            </div>
+            <div class="card-face card-back">
+                <div class="word" id="display-word">燈籠</div>
+            </div>
+        </div>
+    </div>
+    <div class="controls">
+        <button class="btn-nav" onclick="prevCard(event)">⬅️ 上一張</button>
+        <button class="btn-audio" onclick="playCurrentAudio(event)">🔈 聽發音</button>
+        <button class="btn-nav" onclick="nextCard(event)">下一張 ➡️</button>
+    </div>
+</div>
+
+<div id="summary-screen">
+    <h2 style="text-align: center; color: var(--primary-color); font-size: 30px;">🌟 練習成果</h2>
+    
+    <div style="text-align: center; margin-bottom: 25px;">
+        <button class="whatsapp-btn" onclick="copyAndShare()">✅ 已完成跟讀錄音打卡！</button>
+        <p style="font-size: 12px; color: #888; margin-top: -10px;">(點擊後自動複製資訊並前往 WhatsApp)</p>
+    </div>
+
+    <div class="full-audio-player">
+        <h3 style="color:#d66d85; font-size: 16px; margin-bottom: 10px;">🎧 完整錄音複習</h3>
+        <audio id="full-audio-player" style="width:100%" controls src="輕聲詞語3.mp3"></audio>
+    </div>
+
+    <div class="summary-grid" id="summary-list"></div>
+    
+    <div style="text-align: center; margin-top: 40px; padding-bottom: 50px;">
+        <button style="background:#95a5a6; box-shadow:0 6px 0 #7f8c8d; width: auto;" onclick="location.reload()">重新挑戰</button>
+    </div>
+</div>
+
+<script>
+    const wordData = [
+     { word: "燈籠", pinyin: "dēng long", start: 1.3, duration: 2 },
+    { word: "堤防", pinyin: "dī fang", start: 3.3, duration: 2 },
+    { word: "嘀咕", pinyin: "dí gu", start: 5.3, duration: 2 },
+    { word: "記性", pinyin: "jì xing", start: 7.0, duration: 2 },
+    { word: "地方", pinyin: "dì fang", start: 9.0, duration: 2.4 },
+    { word: "點心", pinyin: "diǎn xin", start: 11.8, duration: 2.2 },
+    { word: "東家", pinyin: "dōng jia", start: 14.0, duration: 2 },
+    { word: "動靜", pinyin: "dòng jing", start: 16.0, duration: 2 },
+    { word: "哆嗦", pinyin: "duō suo", start: 18.0, duration: 2 },
+    { word: "甘蔗", pinyin: "gān zhe", start: 20.0, duration: 2 },
+    { word: "高粱", pinyin: "gāo liang", start: 22.0, duration: 2 },
+    { word: "胳膊", pinyin: "gē bo", start: 24.3, duration: 2 },
+    { word: "疙瘩", pinyin: "gē da", start: 26.3, duration: 2},
+    { word: "功夫", pinyin: "gōng fu", start: 28.3, duration: 2},
+    { word: "機靈", pinyin: "jī ling", start: 30.5, duration: 2 },
+    { word: "怪物", pinyin: "guài wu", start: 32.5, duration: 2 },
+    { word: "蛤蟆", pinyin: "há ma", start: 34.3, duration: 2 },
+    { word: "核桃", pinyin: "hé tao", start: 36.5, duration: 2 },
+    { word: "厚道", pinyin: "hòu dao", start: 38.5, duration: 2 },
+    { word: "葫芦", pinyin: "hú lu", start: 41.0, duration: 2.5 }
+    ];
+
+    let currentIndex = 0;
+    let userName = ""; 
+    const audio = document.getElementById('audio-sprite');
+
+    function handleLogin() {
+        const pass = document.getElementById('password').value;
+        userName = document.getElementById('username').value;
+        if (userName === "") { alert("請輸入姓名"); return; }
+        if (pass === "vtcpsc") {
+            audio.play().then(() => {
+                audio.pause();
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('game-screen').style.display = 'flex';
+                updateCard();
+            }).catch(() => {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('game-screen').style.display = 'flex';
+                updateCard();
+            });
+        } else {
+            alert("請輸入正確密碼");
+        }
+    }
+
+    function updateCard() {
+        const card = document.getElementById('main-card');
+        card.classList.remove('is-flipped');
+        document.getElementById('display-word').innerText = wordData[currentIndex].word;
+        document.getElementById('display-pinyin').innerText = wordData[currentIndex].pinyin;
+        document.getElementById('progress-text').innerText = `詞語 ${currentIndex + 1} / ${wordData.length}`;
+    }
+
+    function flipCard() {
+        const card = document.getElementById('main-card');
+        if (!card.classList.contains('is-flipped')) {
+            card.classList.add('is-flipped');
+            playAudio(currentIndex);
+        } else {
+            card.classList.remove('is-flipped');
+        }
+    }
+
+    let audioTimeout;
+    function playAudio(index) {
+        document.getElementById('full-audio-player').pause();
+        clearTimeout(audioTimeout);
+        const item = wordData[index];
+        audio.currentTime = item.start;
+        audio.play();
+        audioTimeout = setTimeout(() => { audio.pause(); }, item.duration * 1000);
+    }
+
+    function playCurrentAudio(e) { e.stopPropagation(); playAudio(currentIndex); }
+    function nextCard(e) {
+        e.stopPropagation();
+        if (currentIndex < wordData.length - 1) { currentIndex++; updateCard(); }
+        else { showSummary(); }
+    }
+    function prevCard(e) { e.stopPropagation(); if (currentIndex > 0) { currentIndex--; updateCard(); } }
+
+    function showSummary() {
+        document.getElementById('game-screen').style.display = 'none';
+        const summaryScreen = document.getElementById('summary-screen');
+        summaryScreen.style.display = 'block';
+        const list = document.getElementById('summary-list');
+        list.innerHTML = '';
+        wordData.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'summary-item';
+            div.innerHTML = `<div style="font-size:14px; color:#ff85a2">${item.pinyin}</div>
+                             <div style="font-size:26px; font-weight:bold; color:#444">${item.word}</div>`;
+            div.onclick = () => playAudio(index);
+            list.appendChild(div);
+        });
+    }
+
+    // 新增：複製並分享功能
+    function copyAndShare() {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
+        const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        const shareText = `【普通話輕聲練習打卡】\n👤 學習者：${userName}\n📅 完成日期：${dateStr}\n⏰ 完成時間：${timeStr}\n✅ 狀態：已完成 20 個輕聲詞語跟讀練習！`;
+
+        // 複製到剪貼簿
+        navigator.clipboard.writeText(shareText).then(() => {
+            alert("✨ 打卡資訊已複製！\n現在將跳轉至 WhatsApp，您可以直接粘貼發送。");
+            // 跳轉到 WhatsApp (通用連結)
+            window.location.href = "whatsapp://send?text=" + encodeURIComponent(shareText);
+        }).catch(err => {
+            // 備用方案：如果權限不允許複製，直接嘗試跳轉
+            window.location.href = "whatsapp://send?text=" + encodeURIComponent(shareText);
+        });
+    }
+</script>
+
+</body>
+</html>
